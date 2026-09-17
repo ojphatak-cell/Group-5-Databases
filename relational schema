@@ -1,0 +1,47 @@
+-- Disaster Response Coordination Database
+
+CREATE TABLE location (
+    location_id,
+    location_name,
+    region,
+    damage_level
+);
+
+CREATE TABLE organization (
+    org_id,
+    org_name,
+    org_type,
+    contact_info 
+);
+
+CREATE TABLE person (
+    person_id,
+    name,
+    age,
+    status   
+);
+
+CREATE TABLE building (
+    building_id,
+    location_id,
+    building_type,
+    damage_status 
+);
+
+CREATE TABLE operations (
+    operation_id,
+    org_id,
+    location_id,
+    operation_type,
+    start_date,
+    status        
+);
+
+CREATE TABLE report (
+    report_id,
+    person_id,
+    location_id,
+    report_text,
+    "timestamp",
+    reliability_score
+);
