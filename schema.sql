@@ -6,23 +6,23 @@ CREATE TABLE location (
 );
 
 CREATE TABLE organization (
-    org_id       TEXT PRIMARY KEY,
-    org_name     TEXT NOT NULL,
-    org_type     TEXT NOT NULL,
-    contact_info TEXT
+    org_id       INTEGER PRIMARY KEY ,
+    org_name     VARCHAR(100),
+    org_type     VARCHAR(50),
+    contact_info VARCHAR(50)
 );
 
 CREATE TABLE person (
-    person_id TEXT PRIMARY KEY,
-    name      TEXT NOT NULL,
+    person_id INTEGER PRIMARY KEY ,
+    name      VARCHAR(30),
     age       INTEGER,
-    status    TEXT NOT NULL
+    status    VARCHAR(20)
 );
 
 CREATE TABLE building (
-    building_id   TEXT PRIMARY KEY,
-    location_id   TEXT NOT NULL REFERENCES location(location_id),
-    building_type TEXT NOT NULL,
+    building_id   INTEGER PRIMARY KEY,
+    location_id   INTEGER REFERENCES location(location_id),
+    building_type  NOT NULL,
     damage_status TEXT NOT NULL
 );
 
