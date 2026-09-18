@@ -1,3 +1,10 @@
+DROP TABLE IF EXISTS report;
+DROP TABLE IF EXISTS operations;
+DROP TABLE IF EXISTS building;
+DROP TABLE IF EXISTS person;
+DROP TABLE IF EXISTS organization;
+DROP TABLE IF EXISTS location;
+
 CREATE TABLE location (
     location_id   INTEGER PRIMARY KEY,
     location_name VARCHAR(30) NOT NULL,
@@ -18,7 +25,7 @@ CREATE TABLE location (
 );
 
 CREATE TABLE organization (
-    org_id       INTEGER PRIMARY KEY ,
+    org_id       INTEGER PRIMARY KEY,
     org_name     VARCHAR(100) NOT NULL UNIQUE,
     org_type     VARCHAR(50) NOT NULL,
     contact_info VARCHAR(50) NOT NULL,
@@ -39,7 +46,7 @@ CREATE TABLE organization (
 );
 
 CREATE TABLE person (
-    person_id INTEGER PRIMARY KEY ,
+    person_id INTEGER PRIMARY KEY,
     name      VARCHAR(30) NOT NULL,
     age       INTEGER NOT NULL,
     status    VARCHAR(20) NOT NULL,
@@ -62,9 +69,9 @@ CREATE TABLE person (
 
 CREATE TABLE building (
     building_id   INTEGER PRIMARY KEY,
-    location_id   INTEGER  NOT NULL,
-    building_type VARCHAR (30) NOT NULL,
-    damage_status  VARCHAR(20) NOT NULL,
+    location_id   INTEGER NOT NULL,
+    building_type VARCHAR(30) NOT NULL,
+    damage_status VARCHAR(20) NOT NULL,
 
     CONSTRAINT fk_building_location
         FOREIGN KEY (location_id)
@@ -85,6 +92,7 @@ CREATE TABLE building (
             'Government',
             'Other'
         )),
+
     CONSTRAINT check_building_damage_status
         CHECK (damage_status IN (
             'Undamaged',
@@ -101,7 +109,7 @@ CREATE TABLE operations (
     location_id    INTEGER NOT NULL,
     operation_type VARCHAR(30) NOT NULL,
     start_date     DATE NOT NULL,
-    status         VARCHAR(30),
+    status         VARCHAR(30) NOT NULL,
 
     CONSTRAINT fk_operation_organization
         FOREIGN KEY (org_id)
@@ -136,7 +144,6 @@ CREATE TABLE operations (
             'Completed',
             'Cancelled'
         ))
-
 );
 
 CREATE TABLE report (
@@ -168,3 +175,9 @@ CREATE TABLE report (
     CONSTRAINT check_report_text_not_empty
         CHECK (LENGTH(TRIM(report_text)) > 0)
 );
+
+CREATE INDEX idx_building_location   ON building(location_id);
+CREATE INDEX idx_operations_org      ON operations(org_id);
+CREATE INDEX idx_operations_location ON operations(location_id);
+CREATE INDEX idx_report_person       ON report(person_id);
+CREATE INDEX idx_report_location     ON report(location_id);
