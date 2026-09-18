@@ -101,7 +101,7 @@ CREATE TABLE operations (
     location_id    INTEGER NOT NULL,
     operation_type VARCHAR(30) NOT NULL,
     start_date     DATE NOT NULL,
-    status         VARCHAR(30) NOT NULL,
+    status         VARCHAR(30),
 
     CONSTRAINT fk_operation_organization
         FOREIGN KEY (org_id)
