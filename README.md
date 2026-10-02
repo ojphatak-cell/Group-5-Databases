@@ -63,3 +63,7 @@ mysql -u <user> -p <database> < queries.sql
 1. Number of active operations per organization.
 2. Locations whose average report reliability is below the overall average.
 3. Locations with more than one Severely damaged or Destroyed building.
+
+## Database URLs
+1. https://data.humdata.org/dataset/official-figures-for-casualties-and-damage/resource/af078993-cea6-404e-9b25-04547aed9601
+2. https://data.humdata.org/dataset/fao-eve-global-flood-monitoring-system/resource/89dec06d-cab1-463f-8c6f-057edb0c8783
