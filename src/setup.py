@@ -19,7 +19,7 @@ def get_engine():
     connection_url = URL.create(
         drivername = "mysql+pymysql",   # change for different DBMS
         username   = "root",            # replace with your username
-        password   = "Knf5Bc90aQgnA",        # replace with your password
+        password   = "password",        # replace with your password
         host       = "localhost",       # replace with your host
         port       = 3306,              # replace with your port, example port for MySQL and MariaDB.
         database   = "floods"           # database name
