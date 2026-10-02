@@ -1,3 +1,5 @@
+from sqlalchemy import text
+
 # CREATE
 
 def add_person(engine, person_id, name, age, status): 
