@@ -1,7 +1,8 @@
 from pathlib import Path
+import pandas as pd
 from sqlalchemy import inspect, text
 
-def run_sql_file(path, engine):
+def load_sql_file(path, engine):
     # Read the SQL file, remove comments and empty lines, and split into individual statements
     lines = [l for l in Path(path).read_text().splitlines() if not l.strip().startswith("--")]
     statements = [s.strip() for s in "\n".join(lines).split(";") if s.strip()]
@@ -9,10 +10,31 @@ def run_sql_file(path, engine):
         for statement in statements:
             connection.execute(text(statement))
             
-def build_database(path, engine):
+def load_csv_file(path, table, engine):
+    data = pd.read_csv(path)
+
+    data.to_sql(
+        table,
+        engine,
+        if_exists="replace",
+        index=False
+    )
+                  
+def run_queries(path, engine):
+    # Read the SQL file, remove comments, and run each query, returning all results
+    lines = [l for l in Path(path).read_text().splitlines() if not l.strip().startswith("--")]
+    statements = [s.strip() for s in "\n".join(lines).split(";") if s.strip()]
+    results = []
+    with engine.connect() as connection:
+        for statement in statements:
+            rows = connection.execute(text(statement)).fetchall()
+            results.append(rows)
+    return results
+            
+def build_database(path, schema, engine):
     # Create the tables and load the data from the SQL file
-    run_sql_file("db/schema.sql", engine)
-    run_sql_file(path, engine)
+    load_sql_file(schema, engine)
+    load_sql_file(path, engine)
     
     
 def get_tables(engine):
