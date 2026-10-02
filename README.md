@@ -7,12 +7,21 @@ earthquake and flood data per district.
 
 ## Project overview
 Week 1:
-Societal problem definition: 
-`resources/Group5_Disaster_Response_DB_Design_Process.docx`
+Societal problem definition - `resources\Assignment 1  - Databases.pdf`
+
 Week 2:
+ERD - `resources\Group 5 - Disaster Response Coordination Database ERD.pdf`
+
 Week 3:
+Schema definition and constraints - `db\schema.sql`, `db\test_data.sql`, `src\crud.py`, 
+`advanced_queries.py`
+
 Week 4:
+Stakeholder video - `resources\Disaster Response Database — Stakeholder Pitch.mp4`
+
 Week 5:
+Real data integration - `db\load_real_data.sql`, `db\nepal_earthquake_data.csv`, 
+`db\npl-flood-events-fao-eve.csv`, `src\validate_data.py`
 
 ## Schema
 
@@ -68,4 +77,9 @@ mysql -u <user> -p <database> < queries.sql
 
 ## Database URLs
 1. https://data.humdata.org/dataset/official-figures-for-casualties-and-damage/resource/af078993-cea6-404e-9b25-04547aed9601
+Publication Date: 01 May 2015
+Data license: https://docs.humdata.org/about/data-licenses
+
 2. https://data.humdata.org/dataset/fao-eve-global-flood-monitoring-system/resource/89dec06d-cab1-463f-8c6f-057edb0c8783
+Publication Date: 03 April 2025
+Data License: https://docs.humdata.org/about/data-licenses
