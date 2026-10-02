@@ -1,3 +1,7 @@
+DROP VIEW IF EXISTS v_earthquake_impact;
+DROP TABLE IF EXISTS flood_observation;
+DROP TABLE IF EXISTS flood_period;
+DROP TABLE IF EXISTS earthquake_impact;
 DROP TABLE IF EXISTS report;
 DROP TABLE IF EXISTS operations;
 DROP TABLE IF EXISTS building;
@@ -10,9 +14,23 @@ CREATE TABLE location (
     location_name VARCHAR(30) NOT NULL,
     region        VARCHAR(30) NOT NULL,
     damage_level  VARCHAR(30) NOT NULL,
+    population    INTEGER NULL,
+    households    INTEGER NULL,
+
+    -- A district name must identify exactly one location, otherwise the
+    -- real-world data could attach to the wrong row.
+    CONSTRAINT uq_location_name
+        UNIQUE (location_name),
 
     CONSTRAINT check_location_id_positive
         CHECK (location_id > 0),
+
+    -- NULL = not reported by the source (not 0). Negative values are not allowed.
+    CONSTRAINT check_location_population
+        CHECK (population IS NULL OR population >= 0),
+
+    CONSTRAINT check_location_households
+        CHECK (households IS NULL OR households >= 0),
 
     CONSTRAINT check_location_damage_level
         CHECK (damage_level IN (
@@ -175,6 +193,102 @@ CREATE TABLE report (
     CONSTRAINT check_report_text_not_empty
         CHECK (LENGTH(TRIM(report_text)) > 0)
 );
+
+-- Tables added to hold the two real-world datasets.
+-- Both are measurements about a location, so each has a FK to location.
+
+
+-- Dataset A: Nepal earthquake 25 April 2015 - official figures per district
+-- One row per district. Totals (deaths, injured) are NOT stored: they are the
+-- sum of the columns below and are shown through v_earthquake_impact(3NF).
+CREATE TABLE earthquake_impact (
+    location_id                   INTEGER PRIMARY KEY,
+    deaths_female                 INTEGER NOT NULL,
+    deaths_male                   INTEGER NOT NULL,
+    deaths_unknown                INTEGER NOT NULL,
+    injured_female                INTEGER NOT NULL,
+    injured_male                  INTEGER NOT NULL,
+    injured_unknown               INTEGER NOT NULL,
+    govt_buildings_damaged        INTEGER NOT NULL,
+    govt_buildings_part_damaged   INTEGER NOT NULL,
+    public_buildings_damaged      INTEGER NOT NULL,
+    public_buildings_part_damaged INTEGER NOT NULL,
+
+    CONSTRAINT fk_earthquake_impact_location
+        FOREIGN KEY (location_id)
+        REFERENCES location(location_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT check_eq_counts_non_negative
+        CHECK (
+            deaths_female >= 0 AND deaths_male >= 0 AND deaths_unknown >= 0 AND
+            injured_female >= 0 AND injured_male >= 0 AND injured_unknown >= 0 AND
+            govt_buildings_damaged >= 0 AND govt_buildings_part_damaged >= 0 AND
+            public_buildings_damaged >= 0 AND public_buildings_part_damaged >= 0
+        )
+);
+
+-- Dataset B: FAO DIEM EVE satellite flood monitoring, bi-weekly per district.
+-- Split in two tables to stay in 2NF.
+-- One row per bi-weekly period.
+CREATE TABLE flood_period (
+    period_start DATE PRIMARY KEY,
+    period_end   DATE NOT NULL,
+
+    CONSTRAINT check_flood_period_order
+        CHECK (period_end >= period_start),
+
+    -- A bi-weekly period lies inside one calendar month and lasts 13-16 days.
+    CONSTRAINT check_flood_period_in_month
+        CHECK (YEAR(period_start) = YEAR(period_end)
+           AND MONTH(period_start) = MONTH(period_end)
+           AND DATEDIFF(period_end, period_start) BETWEEN 12 AND 15)
+);
+
+-- One row per district per period in which flooding was detected.
+-- Square-km columns and percentages are NOT stored, because they
+-- would be redundant(3NF).
+CREATE TABLE flood_observation (
+    location_id           INTEGER NOT NULL,
+    period_start          DATE NOT NULL,
+    cropland_flooded_ha   INTEGER NOT NULL,
+    total_area_flooded_ha INTEGER NOT NULL,
+    pop_exposed           INTEGER NOT NULL,
+
+    CONSTRAINT pk_flood_observation
+        PRIMARY KEY (location_id, period_start),
+
+    CONSTRAINT fk_flood_observation_location
+        FOREIGN KEY (location_id)
+        REFERENCES location(location_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_flood_observation_period
+        FOREIGN KEY (period_start)
+        REFERENCES flood_period(period_start)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT check_flood_areas
+        CHECK (cropland_flooded_ha >= 0
+           AND total_area_flooded_ha >= 0
+           AND cropland_flooded_ha <= total_area_flooded_ha),
+
+    CONSTRAINT check_flood_pop_exposed
+        CHECK (pop_exposed >= 0)
+);
+
+CREATE VIEW v_earthquake_impact AS
+SELECT
+    location_id,
+    deaths_female + deaths_male + deaths_unknown      AS total_deaths,
+    injured_female + injured_male + injured_unknown   AS total_injured,
+    govt_buildings_damaged + public_buildings_damaged AS buildings_damaged,
+    govt_buildings_part_damaged + public_buildings_part_damaged AS buildings_part_damaged
+FROM earthquake_impact;
+
 
 CREATE INDEX idx_building_location ON building(location_id);
 CREATE INDEX idx_operations_org ON operations(org_id);
