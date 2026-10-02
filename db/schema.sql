@@ -176,8 +176,8 @@ CREATE TABLE report (
         CHECK (LENGTH(TRIM(report_text)) > 0)
 );
 
-CREATE INDEX idx_building_location   ON building(location_id);
-CREATE INDEX idx_operations_org      ON operations(org_id);
+CREATE INDEX idx_building_location ON building(location_id);
+CREATE INDEX idx_operations_org ON operations(org_id);
 CREATE INDEX idx_operations_location ON operations(location_id);
-CREATE INDEX idx_report_person       ON report(person_id);
-CREATE INDEX idx_report_location     ON report(location_id);
+CREATE INDEX idx_report_person ON report(person_id);
+CREATE INDEX idx_report_location ON report(location_id);

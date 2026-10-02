@@ -42,7 +42,7 @@ INSERT INTO building (building_id, location_id, building_type, damage_status) VA
 (8, 4, 'Industrial', 'Severe'),
 (9, 4, 'Residential', 'Destroyed'),
 (10, 5, 'Other', 'Undamaged'),
-(11, 6, 'Hospital', 'Destroyed'),
+(11, 6, 'Hospital', 'Destroyed');
 (12, 6, 'Government', 'Moderate');
 
 INSERT INTO operations (operation_id, org_id, location_id, operation_type, start_date, status) VALUES
