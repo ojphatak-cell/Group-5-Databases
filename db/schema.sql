@@ -1,7 +1,7 @@
 DROP VIEW IF EXISTS v_earthquake_impact;
 DROP TABLE IF EXISTS flood_observation;
 DROP TABLE IF EXISTS flood_period;
-DROP TABLE IF EXISTS earthquake_impact;
+DROP TABLE IF EXISTS flood_impact;
 DROP TABLE IF EXISTS report;
 DROP TABLE IF EXISTS operations;
 DROP TABLE IF EXISTS building;
@@ -229,6 +229,12 @@ CREATE TABLE flood_period (
 
     PRIMARY KEY (location_id, period_start),
 
+    CONSTRAINT fk_flood_period_location
+        FOREIGN KEY (location_id)
+        REFERENCES location(location_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
     CONSTRAINT check_flood_period_order
         CHECK (period_end >= period_start),
 
@@ -249,15 +255,9 @@ CREATE TABLE flood_observation (
     CONSTRAINT pk_flood_observation
         PRIMARY KEY (location_id, period_start),
 
-    CONSTRAINT fk_flood_observation_location
-        FOREIGN KEY (location_id)
-        REFERENCES location(location_id)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
     CONSTRAINT fk_flood_observation_period
-        FOREIGN KEY (period_start)
-        REFERENCES flood_period(period_start)
+        FOREIGN KEY (location_id, period_start)
+        REFERENCES flood_period(location_id, period_start)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
