@@ -17,15 +17,12 @@ CREATE TABLE location (
     population    INTEGER NULL,
     households    INTEGER NULL,
 
-    -- A district name must identify exactly one location, otherwise the
-    -- real-world data could attach to the wrong row.
     CONSTRAINT uq_location_name
         UNIQUE (location_name),
 
     CONSTRAINT check_location_id_positive
         CHECK (location_id > 0),
 
-    -- NULL = not reported by the source (not 0). Negative values are not allowed.
     CONSTRAINT check_location_population
         CHECK (population IS NULL OR population >= 0),
 
@@ -194,15 +191,11 @@ CREATE TABLE report (
         CHECK (LENGTH(TRIM(report_text)) > 0)
 );
 
--- Tables added to hold the two real-world datasets.
--- Both are measurements about a location, so each has a FK to location.
+-- Tables were added to hold the two real-world datasets.
 
-
--- Dataset A: Nepal earthquake 25 April 2015 - official figures per district
--- One row per district. Totals (deaths, injured) are NOT stored: they are the
--- sum of the columns below and are shown through v_earthquake_impact(3NF).
-CREATE TABLE earthquake_impact (
-    location_id                   INTEGER PRIMARY KEY,
+CREATE TABLE flood_impact (
+    flood_impact_id               INTEGER PRIMARY KEY,
+    location_id                   INTEGER NOT NULL,
     deaths_female                 INTEGER NOT NULL,
     deaths_male                   INTEGER NOT NULL,
     deaths_unknown                INTEGER NOT NULL,
@@ -229,12 +222,12 @@ CREATE TABLE earthquake_impact (
         )
 );
 
--- Dataset B: FAO DIEM EVE satellite flood monitoring, bi-weekly per district.
--- Split in two tables to stay in 2NF.
--- One row per bi-weekly period.
 CREATE TABLE flood_period (
-    period_start DATE PRIMARY KEY,
+    location_id  INTEGER NOT NULL,
+    period_start DATE NOT NULL,
     period_end   DATE NOT NULL,
+
+    PRIMARY KEY (location_id, period_start),
 
     CONSTRAINT check_flood_period_order
         CHECK (period_end >= period_start),
@@ -246,9 +239,6 @@ CREATE TABLE flood_period (
            AND DATEDIFF(period_end, period_start) BETWEEN 12 AND 15)
 );
 
--- One row per district per period in which flooding was detected.
--- Square-km columns and percentages are NOT stored, because they
--- would be redundant(3NF).
 CREATE TABLE flood_observation (
     location_id           INTEGER NOT NULL,
     period_start          DATE NOT NULL,
@@ -279,16 +269,6 @@ CREATE TABLE flood_observation (
     CONSTRAINT check_flood_pop_exposed
         CHECK (pop_exposed >= 0)
 );
-
-CREATE VIEW v_earthquake_impact AS
-SELECT
-    location_id,
-    deaths_female + deaths_male + deaths_unknown      AS total_deaths,
-    injured_female + injured_male + injured_unknown   AS total_injured,
-    govt_buildings_damaged + public_buildings_damaged AS buildings_damaged,
-    govt_buildings_part_damaged + public_buildings_part_damaged AS buildings_part_damaged
-FROM earthquake_impact;
-
 
 CREATE INDEX idx_building_location ON building(location_id);
 CREATE INDEX idx_operations_org ON operations(org_id);
