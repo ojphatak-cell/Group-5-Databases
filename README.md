@@ -21,10 +21,10 @@ Our disaster response database is built to help coordinators answer these key qu
 
 ## Project overview
 Week 1:
-[Societal problem and scientific literature](resources/Assignment%1%%-%Databases.pdf)
+[Societal problem and scientific literature](resources/Assignment%1%-%Databases.pdf)
 
 Week 2:
-[ERD](resources\Group%5%-%Disaster%Response%Coordination%Database%ERD.pdf)  and [Database Design Process](resources/Group5_Disaster_Response_DB_Design_Process%(1).pdf)
+[ERD](resources/ERD_diagram.pdf)  and [Database Design Process](resources/Design%and%normalization.pdf)
 
 Week 3:
 Schema definition and constraints 
@@ -32,11 +32,11 @@ Schema definition and constraints
 [Advanced queries](advanced%queries.py)
 
 Week 4:
-[Stakeholder video](resources/Disaster%Response%Database%—%Stakeholder%Pitch.mp4)
+[Stakeholder video](resources/Stakeholder%Pitch.mp4)
 
 Week 5:
 Real data integration 
-[Loading data](db/load%real%data.sql), [First dataset](db/nepal_earthquake_data.csv), [Second dataset](db/npl-flood-events-fao-eve.csv)
+[Loading data](db/load%real%data.sql), [First dataset](db/nepal%earthquake%data.csv), [Second dataset](db/npl-flood-events-fao-eve.csv)
 
 ## Stakeholder Video
 https://github.com/user-attachments/assets/b9e79c80-435c-43ea-9683-ad3898bf9d23
