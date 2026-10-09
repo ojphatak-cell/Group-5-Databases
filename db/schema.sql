@@ -222,6 +222,17 @@ CREATE TABLE flood_impact (
         )
 );
 
+-- Earthquake impact per district with totals, used by queries 4-6.
+CREATE VIEW v_earthquake_impact AS
+SELECT location_id,
+       deaths_female, deaths_male, deaths_unknown,
+       deaths_female + deaths_male + deaths_unknown       AS total_deaths,
+       injured_female, injured_male, injured_unknown,
+       injured_female + injured_male + injured_unknown    AS total_injured,
+       govt_buildings_damaged, govt_buildings_part_damaged,
+       public_buildings_damaged, public_buildings_part_damaged
+FROM flood_impact;
+
 CREATE TABLE flood_period (
     location_id  INTEGER NOT NULL,
     period_start DATE NOT NULL,

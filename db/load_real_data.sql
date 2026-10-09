@@ -1,173 +1,122 @@
--- Staging tables for the two real-world datasets. These are temporary tables that
--- hold the raw CSV data before it is cleaned and inserted into the main tables.
+-- Loads the two real-world datasets into location, flood_impact,
+-- flood_period and flood_observation.
+--
+-- Run after schema.sql. The raw CSVs must already be in the staging tables
+-- earthquakes_staging and floods_staging (main.py creates them with pandas,
+-- 1:1 copies of the files, with the original column names).
+--
+-- Every cleaning rule below is described in src/cleaning_log.md.
+-- Note: load_sql_file() splits this file on semicolons, so comments must
+-- not contain one.
 
-DROP TEMPORARY TABLE IF EXISTS stg_earthquake;
-CREATE TEMPORARY TABLE stg_earthquake (
-    dist_id                   INTEGER,
-    district                  VARCHAR(50),
-    zone                      VARCHAR(50),
-    reg_code                  VARCHAR(20),
-    zone_code                 VARCHAR(20),
-    ocha_pcode                VARCHAR(20),
-    hlcit_code                VARCHAR(20),
-    total_household           INTEGER,
-    total_population          INTEGER,
-    death_female              INTEGER,
-    death_male                INTEGER,
-    death_unknown             INTEGER,
-    tot_deaths                INTEGER,
-    injured_female            INTEGER,
-    injured_male              INTEGER,
-    injured_unknown           INTEGER,
-    total_injured             INTEGER,
-    govtbuild_damage          INTEGER,
-    govtbuild_partdamage      INTEGER,
-    publicbuild_damage        INTEGER,
-    publicbuild_partdamage    INTEGER
-);
 
-DROP TEMPORARY TABLE IF EXISTS stg_flood;
-CREATE TEMPORARY TABLE stg_flood (
-    adm0_iso3                 VARCHAR(10),
-    adm0_name                 VARCHAR(50),
-    admin_level               VARCHAR(20),
-    adm1_pcode                VARCHAR(20),
-    adm1_name                 VARCHAR(50),
-    adm2_pcode                VARCHAR(20),
-    adm2_name                 VARCHAR(50),
-    period_number             INTEGER,
-    start_date                VARCHAR(10),
-    end_date                  VARCHAR(10),
-    cropland_flooded_sq_km    DECIMAL(14,4),
-    cropland_flooded_ha       INTEGER,
-    total_area_flooded_sq_km  DECIMAL(14,4),
-    total_area_flooded_ha     INTEGER,
-    perc_cropland_flooded     DOUBLE,
-    perc_total_area_flooded   DOUBLE,
-    pop_exposed               INTEGER
-);
-
--- Data loading to staging tables
-LOAD DATA LOCAL INFILE 'nepal_earthquake_data.csv'
-INTO TABLE stg_earthquake
-CHARACTER SET utf8mb4
-FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 LINES
-(dist_id, district, zone, reg_code, zone_code, ocha_pcode, hlcit_code,
- total_household, total_population,
- death_female, death_male, death_unknown, tot_deaths,
- injured_female, injured_male, injured_unknown, total_injured,
- govtbuild_damage, govtbuild_partdamage,
- publicbuild_damage, publicbuild_partdamage,
- @skip, @skip)
-SET district = TRIM(TRAILING '\r' FROM TRIM(district));
-
-LOAD DATA LOCAL INFILE 'npl-flood-events-fao-eve.csv'
-INTO TABLE stg_flood
-CHARACTER SET utf8mb4
-FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 LINES
-(adm0_iso3, adm0_name, admin_level, adm1_pcode, adm1_name, adm2_pcode,
- adm2_name, period_number, start_date, end_date,
- cropland_flooded_sq_km, cropland_flooded_ha,
- total_area_flooded_sq_km, total_area_flooded_ha,
- perc_cropland_flooded, perc_total_area_flooded, @pop_exposed)
-SET adm2_name   = TRIM(adm2_name),
-    pop_exposed = CAST(TRIM(TRAILING '\r' FROM @pop_exposed) AS UNSIGNED);
-
--- Location insertions
+-- 1. location: one row per district of the earthquake file (75 rows)
+--    location_id  = DIST_ID
+--    region       = province, taken from the flood file (log 2.4)
+--                   Nawalparasi and Rukum are split in the flood file, so
+--                   they get the province of their larger part (log 2.4)
+--    damage_level = from the earthquake death toll:
+--                   0 None, 1-10 Low, 11-100 Moderate, 101-1000 High,
+--                   more than 1000 Critical
+--    Palpa population and households are NULL, copy error (log 2.1)
+--    A totals row (empty district name) is skipped if present (log 2.3)
 INSERT INTO location (location_id, location_name, region, damage_level,
                       population, households)
 SELECT
-    e.dist_id,
-    e.district,
-    CASE e.district
-        WHEN 'Nawalparasi' THEN 'Gandaki/Lumbini'
-        WHEN 'Rukum'       THEN 'Karnali/Lumbini'
+    e.DIST_ID,
+    TRIM(e.DISTRICT),
+    CASE TRIM(e.DISTRICT)
+        WHEN 'Nawalparasi' THEN 'Gandaki'
+        WHEN 'Rukum'       THEN 'Lumbini'
         ELSE (SELECT MIN(f.adm1_name)
-              FROM stg_flood f
-              WHERE f.adm2_name = e.district)
+              FROM floods_staging f
+              WHERE TRIM(f.adm2_name) = TRIM(e.DISTRICT))
     END,
     CASE
-        WHEN e.tot_deaths = 0     THEN 'None'
-        WHEN e.tot_deaths <= 10   THEN 'Low'
-        WHEN e.tot_deaths <= 100  THEN 'Moderate'
-        WHEN e.tot_deaths <= 1000 THEN 'High'
+        WHEN e.Tot_Deaths = 0     THEN 'None'
+        WHEN e.Tot_Deaths <= 10   THEN 'Low'
+        WHEN e.Tot_Deaths <= 100  THEN 'Moderate'
+        WHEN e.Tot_Deaths <= 1000 THEN 'High'
         ELSE 'Critical'
     END,
-    e.total_population,
-    e.total_household
-FROM stg_earthquake e;
+    CASE WHEN TRIM(e.DISTRICT) = 'Palpa' THEN NULL ELSE e.`Total Population` END,
+    CASE WHEN TRIM(e.DISTRICT) = 'Palpa' THEN NULL ELSE e.`Total Household`  END
+FROM earthquakes_staging e
+WHERE e.DISTRICT IS NOT NULL
+  AND TRIM(e.DISTRICT) <> '';
 
--- Location inserts for flood districts that do not exist in the earthquake file
-INSERT INTO location (location_id, location_name, region, damage_level,
-                      population, households)
-SELECT
-    (SELECT MAX(location_id) FROM location)
-        + ROW_NUMBER() OVER (ORDER BY n.adm2_name),
-    n.adm2_name,
-    n.adm1_name,
-    'None',
-    NULL,
-    NULL
-FROM (
-    SELECT f.adm2_name, MIN(f.adm1_name) AS adm1_name
-    FROM stg_flood f
-    WHERE NOT EXISTS (SELECT 1 FROM stg_earthquake e
-                      WHERE e.district = f.adm2_name)
-    GROUP BY f.adm2_name
-) AS n;
 
--- Flood impact insertions
+-- 2. flood_impact: earthquake casualties and building damage per district.
+--    The file has two columns called Unknown. pandas renames the second one
+--    (the injured one) to Unknown.1
 INSERT INTO flood_impact (flood_impact_id, location_id,
                           deaths_female, deaths_male, deaths_unknown,
                           injured_female, injured_male, injured_unknown,
                           govt_buildings_damaged, govt_buildings_part_damaged,
                           public_buildings_damaged, public_buildings_part_damaged)
 SELECT
-    e.dist_id,
     l.location_id,
-    e.death_female, e.death_male, e.death_unknown,
-    e.injured_female, e.injured_male, e.injured_unknown,
-    e.govtbuild_damage, e.govtbuild_partdamage,
-    e.publicbuild_damage, e.publicbuild_partdamage
-FROM stg_earthquake e
-JOIN location l ON l.location_name = e.district;
+    l.location_id,
+    e.Death_Female, e.Death_Male, e.`Unknown`,
+    e.Injured_Female, e.Injured_Male, e.`Unknown.1`,
+    e.GovtBuild_Damage, e.GovtBuild_PartDamage,
+    e.PublicBuild_Damage, e.PublicBuild_PartDamage
+FROM earthquakes_staging e
+JOIN location l ON l.location_name = TRIM(e.DISTRICT);
 
--- Flood date fix
-DROP TEMPORARY TABLE IF EXISTS stg_flood_clean;
-CREATE TEMPORARY TABLE stg_flood_clean AS
+
+-- 3. Cleaned flood rows, one per district per period.
+--    a) start_date has day and month swapped in 518 rows. These are exactly
+--       the rows where start and end month differ, so those are re-read as
+--       YYYY-DD-MM (log 2.2).
+--    b) Nawalparasi East/West and Rukum East/West are mapped to their parent
+--       district and summed, so 2896 raw rows become 2823 (log 2.3, 2.4).
+DROP TEMPORARY TABLE IF EXISTS flood_clean;
+
+CREATE TEMPORARY TABLE flood_clean AS
 SELECT
     l.location_id,
-    CASE
-        WHEN MONTH(STR_TO_DATE(f.start_date, '%Y-%m-%d'))
-          <> MONTH(STR_TO_DATE(f.end_date,   '%Y-%m-%d'))
-        THEN STR_TO_DATE(f.start_date, '%Y-%d-%m')
-        ELSE STR_TO_DATE(f.start_date, '%Y-%m-%d')
-    END                                   AS period_start,
-    STR_TO_DATE(f.end_date, '%Y-%m-%d')   AS period_end,
-    f.cropland_flooded_ha,
-    f.total_area_flooded_ha,
-    f.pop_exposed
-FROM stg_flood f
-JOIN location l ON l.location_name = f.adm2_name;
+    x.period_start,
+    x.period_end,
+    SUM(x.cropland_flooded_ha)   AS cropland_flooded_ha,
+    SUM(x.total_area_flooded_ha) AS total_area_flooded_ha,
+    SUM(x.pop_exposed)           AS pop_exposed
+FROM (
+    SELECT
+        CASE
+            WHEN TRIM(f.adm2_name) LIKE 'Nawalparasi %' THEN 'Nawalparasi'
+            WHEN TRIM(f.adm2_name) LIKE 'Rukum %'       THEN 'Rukum'
+            ELSE TRIM(f.adm2_name)
+        END AS district,
+        CASE
+            WHEN MONTH(STR_TO_DATE(f.start_date, '%Y-%m-%d'))
+              <> MONTH(STR_TO_DATE(f.end_date,   '%Y-%m-%d'))
+            THEN STR_TO_DATE(f.start_date, '%Y-%d-%m')
+            ELSE STR_TO_DATE(f.start_date, '%Y-%m-%d')
+        END AS period_start,
+        STR_TO_DATE(f.end_date, '%Y-%m-%d') AS period_end,
+        f.cropland_flooded_ha,
+        f.total_area_flooded_ha,
+        f.pop_exposed
+    FROM floods_staging f
+) AS x
+JOIN location l ON l.location_name = x.district
+GROUP BY l.location_id, x.period_start, x.period_end;
 
--- Flood periods insertions
+
+-- 4. flood_period
 INSERT INTO flood_period (location_id, period_start, period_end)
-SELECT DISTINCT location_id, period_start, period_end
-FROM stg_flood_clean;
+SELECT location_id, period_start, period_end
+FROM flood_clean;
 
--- Flood observations insertions
+
+-- 5. flood_observation
 INSERT INTO flood_observation (location_id, period_start,
                                cropland_flooded_ha, total_area_flooded_ha,
                                pop_exposed)
 SELECT location_id, period_start,
        cropland_flooded_ha, total_area_flooded_ha, pop_exposed
-FROM stg_flood_clean;
+FROM flood_clean;
 
---  Cleanup
-DROP TEMPORARY TABLE IF EXISTS stg_flood_clean;
-DROP TEMPORARY TABLE IF EXISTS stg_flood;
-DROP TEMPORARY TABLE IF EXISTS stg_earthquake;
+
+DROP TEMPORARY TABLE IF EXISTS flood_clean;
