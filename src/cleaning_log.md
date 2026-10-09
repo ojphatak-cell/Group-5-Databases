@@ -1,37 +1,41 @@
 ## 2. Cleaning log
 
-### 2.1 How is missing data reported?
+**Dataset A** – `nepal_earthquake_data.csv`: 2015 earthquake casualties and damage, 75 districts.
+**Dataset B** – `npl-flood-events-fao-eve.csv`: flooding per district per two-week period, July 2024 – July 2026, 2,896 rows.
 
-| Dataset | Finding | Treatment |
+All cleaning happens in `db/load_real_data.sql`. The raw CSVs are first copied unchanged into staging tables.
+
+### 2.1 Missing data
+
+| Data | Problem | What we did |
 |---|---|---|
-| A | `Displaced_Females` and `Displaced_Males` are empty (blank) in all rows. In Humla, `Displaced_Females` holds a stray line break. | Columns not loaded. |
-| A | Counts are never blank; "nothing happened" and "not reported" are both `0` (many remote districts are all zeros). | Loaded as 0. Cannot be distinguished, noted as a limitation. |
-| A | The Palpa row has exactly the same households and population as Nawalparasi (128,793 / 643,508). This is a copy error: the two districts are very different in size. | Palpa population and households set to NULL (the schema allows NULL). |
-| B | No blank cells. Missing data is shown by **absent rows**: a district only has a row in periods where flooding was detected (minimum flooded area is 1 ha). | Absent row = "no flooding detected" (our assumption, not stated by the source). Not filled with zeros. |
-| B | Period 36 (2025-06-16 to 2025-06-30) is absent for **all** districts, which is more likely a gap in the file than "no flooding anywhere". | Kept as missing. Queries must not treat it as zero. |
+| A | `Displaced_Females` and `Displaced_Males` are empty in every row. | Not loaded. |
+| A | A count of `0` can mean "nothing happened" or "not reported". | Loaded as `0`. Noted as a limitation. |
+| A | Palpa has the exact same population and households as Nawalparasi, a copy error. | Palpa's population and households set to `NULL`. |
+| B | A district only has a row when flooding was found, so a missing row means "no flooding". | Missing rows are not filled with zeros. |
+| B | Period 36 (16–30 June 2025) is missing for every district, which looks like a gap in the file. | Left missing. Queries must not read it as zero flooding. |
 
-### 2.2 How are dates formatted?
+### 2.2 Dates
 
-| Dataset | Finding | Treatment |
+| Data | Problem | What we did |
 |---|---|---|
-| A | No date column. The event date (25 April 2015) only exists in the HDX metadata. `ZONE_CODE` values such as `1/1/0524` look like dates and would be converted by spreadsheet software. | Date taken from metadata. Zone code not loaded. |
-| B | ISO format `YYYY-MM-DD`, but day and month are **swapped** in `start_date` for 8 periods (518 rows). Example: period 13 has start `2024-01-07` and end `2024-07-15`; the real start is 2024-07-01. | If `MONTH(start) <> MONTH(end)`, month and day of `start_date` are swapped back (`load_real_data.sql`, step 3). A CHECK constraint on `flood_period` now rejects any period that crosses a month. |
+| A | No date column. The earthquake date (25 April 2015) is only in the dataset's description. | Taken from the description. |
+| B | In 518 rows, day and month are swapped in `start_date`. For example, `2024-01-07` with end date `2024-07-15` really means 1 July 2024. | When start and end fall in different months, the start date's day and month are swapped back. A `CHECK` on `flood_period` rejects any period that crosses a month. |
 
-### 2.3 Are there duplicate records?
+### 2.3 Duplicates
 
-| Dataset | Finding | Treatment |
+| Data | Problem | What we did |
 |---|---|---|
-| A | No duplicate rows or `DIST_ID`. The Palpa/Nawalparasi duplicated values are described above. The totals row (district empty) repeats information held in the district rows. | Totals row excluded and used only to check the loaded sums (`validate_data.py`, section 1). |
-| B | No duplicate rows and no duplicate (`adm2_pcode`, `start_date`). After mapping East/West halves to their parent district there are intentional duplicate keys. | Halves summed (see 2.4). 2,896 raw rows become 2,823; totals of flooded hectares (6,332,148) and exposed people (15,840,626) are identical before and after. |
+| A, B | No duplicate rows or IDs. | Nothing needed. |
+| B | After joining the East/West halves of a district (see 2.4), the same district and period appear twice. | The two halves are added together, so 2,896 rows become 2,823. Totals stay the same: 6,332,148 ha flooded, 15,840,626 people exposed. |
 
-### 2.4 Are there inconsistent naming conventions?
+### 2.4 Naming and consistency
 
-| Finding | Treatment |
+| Problem | What we did |
 |---|---|
-| A uses the old 14 **zones** (e.g. Mechi, Koshi, Bagmati) and B uses the 7 **provinces** (Koshi, Madhesh, Bagmati…). "Koshi" means a different area in each file. | `location.region` = province, taken from B. Zones not loaded. |
-| A has 75 districts, B has 77. Nawalparasi and Rukum are split into "East"/"West" in B. | B rows are summed into the parent district. The province of the larger part (by area implied by the flooded percentage) is used: Nawalparasi → Gandaki, Rukum → Lumbini. |
-| Different code systems (A: `E-MEC-01`, B: `NP0775`); the files cannot be joined on code. | Joined on district name. All 73 unchanged names match exactly (also in spelling, e.g. `Chitawan`). |
-| Column names: A mixes styles (`Total Household`, `Death_Female`, `GovtBuild_Damage`) and has two columns called `Unknown`; B is `snake_case`. | Renamed to one convention in the new tables (`deaths_unknown`, `injured_unknown`, `govt_buildings_damaged`…). |
-| B starts with a UTF-8 byte-order mark; A uses Windows line endings (and a quoted line break inside one cell), B uses Unix line endings. | Handled by pandas when loading staging. |
-| `DIST_ID` order differs from `HLCIT_CODE` order in several rows (e.g. 12/13, 37–41). | `DIST_ID` used as `location_id`; no data change. |
-| "GovtBuild_Damage" vs "GovtBuild_PartDamage" is not defined in the file. | Interpreted as fully damaged vs partly damaged (assumption). |
+| A uses the old 14 zones, B uses the current 7 provinces. "Koshi" means a different area in each. | `location.region` is the province from B. Zones are not loaded. |
+| A has 75 districts, B has 77: Nawalparasi and Rukum are split into East and West in B. | B's halves are added into the parent district. Region is the province of the larger half: Nawalparasi → Gandaki, Rukum → Lumbini. |
+| The files use different district codes, so they can't be joined on code. | Joined on district name. All 73 other names match exactly. |
+| Column names mix styles in A (`Total Household`, `Death_Female`) and A has two columns both called `Unknown`. | Renamed to one style in our tables (`deaths_unknown`, `injured_unknown`, …). |
+| Lalitpur's `Tot_Deaths` is 176, but its female + male + unknown deaths add up to 177. | We store the parts and compute the total (177). The national total becomes 8,713 instead of 8,712. |
+| A does not explain `GovtBuild_Damage` vs `GovtBuild_PartDamage`. | Assumed to mean fully vs partly damaged. |
