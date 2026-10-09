@@ -1,12 +1,12 @@
 -- Mock data from week 3 (locations, organizations, people, buildings, operations, reports).
 
-INSERT INTO location (location_name, region, damage_level) VALUES
-('Phoksundo', 'Karnali', 'High'),
-('Marpha', 'Dhawalagiri', 'Moderate'),
-('Pokhara', 'Gandaki', 'Low'),
-('Lang Tang', 'Bagmati', 'Critical'),
-('Chukhung', 'Koshi', 'High'),
-('Tamku', 'Koshi', 'None');
+INSERT INTO location (location_id, location_name, region, damage_level) VALUES
+(1, 'Phoksundo', 'Karnali', 'High'),
+(2, 'Marpha', 'Dhawalagiri', 'Moderate'),
+(3, 'Pokhara', 'Gandaki', 'Low'),
+(4, 'Lang Tang', 'Bagmati', 'Critical'),
+(5, 'Chukhung', 'Koshi', 'High'),
+(6, 'Tamku', 'Koshi', 'None');
 
 INSERT INTO organization (org_id, org_name, org_type, contact_info) VALUES
 (1, 'GlobalGiving', 'NGO', 'contact@globalgiving.org'),
