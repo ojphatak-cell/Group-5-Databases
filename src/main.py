@@ -14,7 +14,7 @@ def main():
     # 2. Normalized schema, then real data (cleaned from staging), then mock data
     load_sql_file("db/schema.sql", engine)
     load_sql_file("db/load_real_data.sql", engine)
-    load_sql_file("db/test_data.sql", engine)
+    # load_sql_file("db/test_data.sql", engine) if you want to use test data.
 
     print(get_tables(engine))
 
