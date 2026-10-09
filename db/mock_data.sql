@@ -1,7 +1,12 @@
--- Mock data from week 3 (organizations, people, buildings, operations, reports).
--- Run AFTER load_real_data.sql. The mock places now point to the real district
--- they lie in: Phoksundo -> Dolpa (62), Marpha -> Mustang (42), Pokhara -> Kaski (40),
--- Lang Tang -> Rasuwa (29), Chukhung -> Solukhumbu (11), Tamku -> Sankhuwasabha (9).
+-- Mock data from week 3 (locations, organizations, people, buildings, operations, reports).
+
+INSERT INTO location (location_name, region, damage_level) VALUES
+('Phoksundo', 'Karnali', 'High'),
+('Marpha', 'Dhawalagiri', 'Moderate'),
+('Pokhara', 'Gandaki', 'Low'),
+('Lang Tang', 'Bagmati', 'Critical'),
+('Chukhung', 'Koshi', 'High'),
+('Tamku', 'Koshi', 'None');
 
 INSERT INTO organization (org_id, org_name, org_type, contact_info) VALUES
 (1, 'GlobalGiving', 'NGO', 'contact@globalgiving.org'),
