@@ -5,23 +5,41 @@ locations, buildings, the organizations and people involved, the
 operations they run, and the field reports they file and real
 earthquake and flood data per district.
 
+
+## The Societal Challenge
+The 2026 Nepal-Tibet floods caused massive destruction, wiping out roads, bridges, and communication networks. This makes it extremely hard to reach and rescue vulnerable people, such as riverside families and trapped workers.   
+
+### Why Data Management Matters
+When communication breaks down during a disaster, critical information goes missing and rescue efforts are severely delayed. A centralized database solves this problem. It gives emergency services and NGOs a single place to organize reliable field reports, track damage, and coordinate rescue teams efficiently.   
+
+### Questions Our Database Answers
+Our disaster response database is built to help coordinators answer these key questions during a crisis:
+* What is the current status of affected people (e.g., missing, rescued, or safe)?   
+* Which regions and buildings are the most severely damaged?   
+* Which organizations are actively running relief operations right now?   
+* How reliable are the incoming reports from people on the ground?
+
 ## Project overview
 Week 1:
-Societal problem definition - `resources\Assignment 1  - Databases.pdf`
+[Societal problem and scientific literature](resources/Assignment%1%%-%Databases.pdf)
 
 Week 2:
-ERD - `resources\Group 5 - Disaster Response Coordination Database ERD.pdf`
+[ERD](resources\Group%5%-%Disaster%Response%Coordination%Database%ERD.pdf)  and [Database Design Process](resources/Group5_Disaster_Response_DB_Design_Process%(1).pdf)
 
 Week 3:
-Schema definition and constraints - `db\schema.sql`, `db\test_data.sql`, `src\crud.py`, 
-`advanced_queries.py`
+Schema definition and constraints 
+[Schema](db/schema.sql]), [Test data](db/mock%data.sql), [CRUD](src/crud.py), 
+[Advanced queries](advanced%queries.py)
 
 Week 4:
-Stakeholder video - `resources\Disaster Response Database — Stakeholder Pitch.mp4`
+[Stakeholder video](resources/Disaster%Response%Database%—%Stakeholder%Pitch.mp4)
 
 Week 5:
-Real data integration - `db\load_real_data.sql`, `db\nepal_earthquake_data.csv`, 
-`db\npl-flood-events-fao-eve.csv`, `src\validate_data.py`
+Real data integration 
+[Loading data](db/load%real%data.sql), [First dataset](db/nepal_earthquake_data.csv), [Second dataset](db/npl-flood-events-fao-eve.csv)
+
+## Stakeholder Video
+https://github.com/user-attachments/assets/b9e79c80-435c-43ea-9683-ad3898bf9d23
 
 ## Schema
 
@@ -38,41 +56,25 @@ flood_observation(location_id FK, period_start FK -> PK together, cropland_flood
                   total_area_flooded_ha, pop_exposed)                                        
 v_earthquake_impact                                                                       
 
-
-## Running it
-
-Requires Python 3, MySQL/MariaDB (8.0+ / 10.5+ for `CHECK` constraints) and:
-
-pip install sqlalchemy pandas pymysql
-
-
-1. Create a database called `floods` and set the user and password in `src/setup.py`.
-2. From the repository root:
-
-
-python3 src/main.py            # staging -> schema -> real data -> mock data -> 6 queries
-python3 src/validate_data.py   # checks (all lines should show OK / rejected)
-
-
 ## Running it on MySQL
+Create an empty database by running this inside MySQL:
+CREATE DATABASE floods;
+Then clone the repository from the git repo and change the password in setup to your local MySQL password.
+Then, go to main inside src/main.py and run it.
 
-`schema.sql`, `data.sql` and `queries.sql` are plain SQL and load
-into MySQL (8.0+) the same way they load into SQLite:
+## Example queries 
 
-```bash
-mysql -u <user> -p <database> < schema.sql
-mysql -u <user> -p <database> < data.sql
-mysql -u <user> -p <database> < queries.sql
-```
 
-## Example queries (`src/advanced_queries.py`)
 
-1. Active operations per organization.
-2. Locations whose average report reliability is below the overall average.
-3. Locations with more than one Severe or Destroyed building.
-4. Earthquake casualties and latest flood exposure per region *(real data)*.
-5. High/Critical districts without an active operation *(real data + mock operations)*.
-6. Earthquake-hit districts with the highest flood exposure in the latest period *(both datasets)*.
+| Query | Author | Question | Why / Purpose |
+| :--- | :--- | :--- | :--- |
+| **1** | Erik | How many operations is each organization running right now? | Coordinators can see which organizations are already stretched and which still have capacity before handing out new tasks. |
+| **2** | Erik | Which locations get field reports that are less reliable than the average report? | When roads and phone lines break down, field reports are the main source of information. Places with unreliable reports need their information checked before rescuers act on it. |
+| **3** | Yevhen | Which locations have more than one severely damaged or destroyed building? | Several collapsed buildings in one place means people may be trapped and roads blocked, so search and rescue and repair teams go there first. |
+| **4** | Yevhen | Per province, how many people were killed or injured in the 2015 earthquake, and how many people are exposed to flooding in the latest period of the flood data? | Shows which provinces carry both a past earthquake burden and a current flood risk, which helps divide resources between provinces. |
+| **5** | Ojas | Which districts are rated High or Critical but have no active operation? | This is the response gap: the places that need help most and are not getting it, so they should be first in line for new teams. |
+| **6** | Ojas | Which districts that had at least 10 earthquake deaths have the most people exposed to flooding in the latest period? | Districts hit by both hazards have weakened buildings and infrastructure, so a new flood there is likely to cause more harm. |
+
 
 
 ## Database URLs
