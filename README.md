@@ -75,7 +75,28 @@ Then, go to main inside src/main.py and run it.
 | **5** | Ojas | Which districts are rated High or Critical but have no active operation? | This is the response gap: the places that need help most and are not getting it, so they should be first in line for new teams. |
 | **6** | Ojas | Which districts that had at least 10 earthquake deaths have the most people exposed to flooding in the latest period? | Districts hit by both hazards have weakened buildings and infrastructure, so a new flood there is likely to cause more harm. |
 
+## Limitations
 
+- The data covers different times: the earthquake is from 2015, the floods from 2024–2026. Mock operations only run in mock locations, so Q5 lists all 10 High/Critical districts as having no active operation.
+- The real data only gives totals per district, so `building`, `person` and `report` are still mock data.
+- `damage_level` reflects the 2015 earthquake only. 36 districts that flood are still rated "None".
+- A 0 in the earthquake file can mean "nothing happened" or "not reported". A missing row in the flood file can mean "no flooding" or "no data".
+- `flood_impact` holds one earthquake, and we merged Nawalparasi and Rukum back into single districts, although Nepal now has 77.
+
+## Future work
+
+1. Load real operations data, such as HDX's "Who does What Where".
+2. Add a `disaster_event` table so the database can hold more than one disaster.
+3. Base `damage_level` on both earthquake and flood data.
+4. Switch to the 77 current districts, linked to the old ones.
+
+## Reflection
+
+The real data needed more cleaning than we expected: swapped dates in the flood file, a copy error in Palpa's population, a death total that didn't match its parts, and districts split in one file but not the other. Loading the raw files into staging tables first and cleaning them with SQL kept every step traceable, and CHECK constraints caught errors we would not have spotted by eye.
+
+Our biggest problems were in teamwork: older versions of files were pushed over newer ones, so fixed bugs came back.
+
+**Next time:** pull before editing, agree on ID ranges for mock and real data early, and test the full build on an empty database before every push.
 
 ## Database URLs
 1. https://data.humdata.org/dataset/official-figures-for-casualties-and-damage/resource/af078993-cea6-404e-9b25-04547aed9601
